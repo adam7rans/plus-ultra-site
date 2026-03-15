@@ -1,6 +1,8 @@
 import { Link } from "react-router";
 import { Shield, Radio, Users, ChevronRight, Zap, Lock, Wifi, AlertTriangle, Download, ArrowRight, Github, Eye, Code2, GitBranch } from "lucide-react";
 import { ContourMapBackground } from "../components/ContourMapBackground";
+import { DitheredImageBg } from "../components/DitheredImageBg";
+import { Footer } from "../components/Footer";
 
 // ─── Section: Hero ────────────────────────────────────────────────────────────
 function HeroSection() {
@@ -10,7 +12,7 @@ function HeroSection() {
       style={{ backgroundColor: "var(--pu-bg)" }}
     >
       {/* Contour map background — extends 64px behind the navbar */}
-      <ContourMapBackground opacity={0.4} />
+      <ContourMapBackground opacity={0.4} showControls />
       {/* Radial glow */}
       <div
         className="absolute inset-0 pointer-events-none"
@@ -818,10 +820,7 @@ function ThesisSection() {
 // ─── Section: Final CTA ───────────────────────────────────────────────────────
 function CtaSection() {
   return (
-    <section
-      className="relative py-20 overflow-hidden"
-      style={{ backgroundColor: "var(--pu-bg)" }}
-    >
+    <section className="relative py-20">
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
@@ -920,6 +919,47 @@ function CtaSection() {
   );
 }
 
+// ─── CTA + Footer: shared dithered-forest background ─────────────────────────
+function CtaAndFooter() {
+  return (
+    <div className="relative overflow-hidden">
+      {/* Full-bleed dithered forest background */}
+      <DitheredImageBg
+        src="/images/Treeline_FrenchAlps_2021-1.jpg"
+        opacity={0.28}
+        internalWidth={900}
+      />
+      {/* Dark scrim for readability */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{ background: "rgba(8,11,9,0.6)" }}
+      />
+
+      {/* CTA section — transparent, sits on shared bg */}
+      <div className="relative">
+        <CtaSection />
+      </div>
+
+      {/* Footer card — narrowed so dither bleeds in from sides */}
+      <div
+        className="relative"
+        style={{ padding: "0 clamp(24px, 13vw, 220px)" }}
+      >
+        <div
+          className="rounded-t-xl overflow-hidden"
+          style={{
+            backgroundColor: "var(--pu-surface)",
+            border: "1px solid var(--pu-border)",
+            borderBottom: "none",
+          }}
+        >
+          <Footer isCard />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Home Page ────────────────────────────────────────────────────────────────
 export default function Home() {
   return (
@@ -929,7 +969,7 @@ export default function Home() {
       <MockupSection />
       <ThesisSection />
       <OpenSourceSection />
-      <CtaSection />
+      <CtaAndFooter />
     </>
   );
 }

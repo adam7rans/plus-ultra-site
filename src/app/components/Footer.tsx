@@ -52,13 +52,13 @@ const socialLinks = [
   { href: "https://tiktok.com", label: "TikTok", icon: <TikTokIcon size={15} /> },
 ];
 
-export function Footer() {
+export function Footer({ isCard = false }: { isCard?: boolean }) {
   return (
     <footer
-      className="border-t"
+      className={isCard ? "" : "border-t"}
       style={{
         borderColor: "var(--pu-border)",
-        backgroundColor: "var(--pu-surface)",
+        backgroundColor: isCard ? "transparent" : "var(--pu-surface)",
       }}
     >
       {/* Main footer content */}
@@ -104,7 +104,7 @@ export function Footer() {
           </div>
 
           {/* Product links — col 3 */}
-          <div>
+          <div className="lg:pt-[100px]">
             <h4
               className="text-xs pu-mono tracking-widest uppercase mb-4"
               style={{ color: "var(--pu-green)", letterSpacing: "0.15em" }}
@@ -133,7 +133,7 @@ export function Footer() {
           </div>
 
           {/* Resources + Legal + GitHub/Socials row — col-span-2 */}
-          <div className="lg:col-span-2 flex flex-col">
+          <div className="lg:col-span-2 flex flex-col lg:pt-[100px]">
             {/* Resources & Legal side by side */}
             <div className="grid grid-cols-2 gap-8">
               {(["Resources", "Legal"] as const).map((category) => (

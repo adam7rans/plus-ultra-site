@@ -1,4 +1,4 @@
-import { Outlet } from "react-router";
+import { Outlet, useLocation } from "react-router";
 import { Helmet } from "react-helmet-async";
 import { Navbar } from "./components/Navbar";
 import { Footer } from "./components/Footer";
@@ -8,6 +8,7 @@ import { AnalyticsProvider, AnalyticsDevMonitor } from "./components/Analytics";
 import { SITE_STRUCTURED_DATA } from "./components/SEO";
 
 export function Root() {
+  const { pathname } = useLocation();
   return (
     <CartProvider>
       {/* Site-wide JSON-LD (Organization + WebSite + App) */}
@@ -25,7 +26,7 @@ export function Root() {
         <main className="flex-1 pt-16">
           <Outlet />
         </main>
-        <Footer />
+        {pathname !== "/" && <Footer />}
         <CartDrawer />
       </div>
 
