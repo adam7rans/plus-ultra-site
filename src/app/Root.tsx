@@ -22,11 +22,11 @@ export function Root() {
       <AnalyticsProvider />
 
       <div className="min-h-screen flex flex-col">
-        <Navbar />
-        <main className="flex-1 pt-16">
+        {pathname !== "/docs" && <Navbar />}
+        <main className={`flex-1${pathname === "/docs" ? "" : " pt-16"}`}>
           <Outlet />
         </main>
-        {pathname !== "/" && <Footer />}
+        {pathname !== "/" && pathname !== "/docs" && <Footer />}
         <CartDrawer />
       </div>
 

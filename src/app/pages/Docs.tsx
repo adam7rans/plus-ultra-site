@@ -1,13 +1,16 @@
 import { useState, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { Link, NavLink } from "react-router";
 import {
   BookOpen, ChevronRight, ChevronDown, FileText, Download,
-  Menu, X, Clock, Calendar, ArrowLeft, ArrowRight, Search,
+  Menu, X, Clock, Calendar, ArrowLeft, ArrowRight, Search, ShoppingCart,
 } from "lucide-react";
 import { docCategories, type DocArticle, type DocCategory } from "../data/docs-content";
 import { SEO } from "../components/SEO";
-import { PAGE_META, trackEvent, AnalyticsEvents } from "../lib/analytics";
+import { PAGE_META, trackEvent, AnalyticsEvents, handleDownloadClick } from "../lib/analytics";
+import Logo from "../../imports/Logo";
+import { useCart } from "../context/CartContext";
 
 // ─── PDF Print helper ──────────────────────────────────────────────────────────
 function printAsPdf(title: string) {
@@ -202,6 +205,114 @@ function DocMarkdown({ content }: { content: string }) {
   );
 }
 
+// ─── Docs Navbar ─────────────────────────────────────────────────────────────
+
+const DOC_NAV_LINKS = [
+  { to: "/features", label: "Features" },
+  { to: "/docs",     label: "Docs" },
+  { to: "/tutorials",label: "Tutorials" },
+  { to: "/store",    label: "Store" },
+];
+
+function DocsNavbar() {
+  const { itemCount, toggleCart } = useCart();
+
+  return (
+    <header
+      style={{
+        position: "fixed",
+        top: 0, left: 0, right: 0,
+        zIndex: 50,
+        height: "64px",
+        backgroundColor: "rgba(8,11,9,0.98)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+        borderBottom: "1px solid var(--pu-border)",
+      }}
+    >
+      <div className="max-w-full w-full px-4 sm:px-6 lg:px-8 flex items-center justify-between h-full">
+        {/* Logo */}
+        <Link to="/" className="flex items-center select-none -ml-4">
+          <div style={{ width: "215px", height: "52px", overflow: "visible", position: "relative", flexShrink: 0 }}>
+            <div style={{ transform: "scale(2.5)", transformOrigin: "top left", width: "86px", height: "28px", position: "absolute", top: 0, left: 0 }}>
+              <Logo />
+            </div>
+          </div>
+        </Link>
+
+        {/* Nav links */}
+        <nav className="hidden md:flex items-center gap-1">
+          {DOC_NAV_LINKS.map((link) => (
+            <NavLink
+              key={link.to}
+              to={link.to}
+              className={({ isActive }) =>
+                `px-4 py-2 rounded-t text-sm transition-colors duration-200 pu-mono tracking-wide border-b-2 ${
+                  isActive
+                    ? "text-[var(--pu-green)] bg-[var(--pu-green-glow)] border-b-[var(--pu-green)]"
+                    : "text-[var(--pu-text)] border-b-transparent hover:border-b-[var(--pu-green-dim)]"
+                }`
+              }
+            >
+              {link.label}
+            </NavLink>
+          ))}
+        </nav>
+
+        {/* Right: iOS · Android · Cart */}
+        <div className="hidden md:flex items-center gap-3">
+          {/* iOS */}
+          <a
+            href="#download"
+            className="flex items-center gap-2 px-4 py-2 rounded text-sm transition-all duration-150"
+            style={{ border: "1px solid var(--pu-border)", color: "var(--pu-text)", backgroundColor: "var(--pu-surface-2)" }}
+            onClick={(e) => { e.preventDefault(); window.location.href = handleDownloadClick("ios", "docs-navbar"); }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.borderColor = "var(--pu-green-dim)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.borderColor = "var(--pu-border)"; }}
+          >
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+              <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+            </svg>
+            iOS
+          </a>
+          {/* Android */}
+          <a
+            href="#download"
+            className="flex items-center gap-2 px-4 py-2 rounded text-sm transition-all duration-150"
+            style={{ border: "1px solid var(--pu-border)", color: "var(--pu-text)", backgroundColor: "var(--pu-surface-2)" }}
+            onClick={(e) => { e.preventDefault(); window.location.href = handleDownloadClick("android", "docs-navbar"); }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.borderColor = "var(--pu-green-dim)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.borderColor = "var(--pu-border)"; }}
+          >
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+              <path d="M6 18c0 .55.45 1 1 1h1v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h2v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h1c.55 0 1-.45 1-1V8H6v10zM3.5 8C2.67 8 2 8.67 2 9.5v7c0 .83.67 1.5 1.5 1.5S5 17.33 5 16.5v-7C5 8.67 4.33 8 3.5 8zm17 0c-.83 0-1.5.67-1.5 1.5v7c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-7c0-.83-.67-1.5-1.5-1.5zm-4.97-5.84l1.3-1.3c.2-.2.2-.51 0-.71-.2-.2-.51-.2-.71 0l-1.48 1.48C14.15 1.23 13.11 1 12 1c-1.11 0-2.15.23-3.09.63L7.43.15c-.2-.2-.51-.2-.71 0-.2.2-.2.51 0 .71l1.3 1.3C6.34 3.13 5 5.21 5 7.6v.4h14v-.4c0-2.39-1.34-4.47-3.47-5.44zM10 5H9V4h1v1zm5 0h-1V4h1v1z"/>
+            </svg>
+            Android
+          </a>
+          {/* Cart */}
+          <button
+            onClick={toggleCart}
+            className="relative flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-150"
+            style={{ backgroundColor: "var(--pu-surface-2)", border: "1px solid var(--pu-border)", color: "var(--pu-text)" }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--pu-green-dim)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--pu-border)"; }}
+          >
+            <ShoppingCart size={16} />
+            {itemCount > 0 && (
+              <span
+                className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[10px] pu-mono font-bold"
+                style={{ backgroundColor: "var(--pu-green)", color: "#000" }}
+              >
+                {itemCount}
+              </span>
+            )}
+          </button>
+        </div>
+      </div>
+    </header>
+  );
+}
+
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 interface SidebarProps {
   activeCategory: string;
@@ -226,7 +337,7 @@ function Sidebar({ activeCategory, activeArticle, onSelect, onClose }: SidebarPr
     <div className="h-full flex flex-col">
       {/* Sidebar header */}
       <div
-        className="flex items-center justify-between px-4 py-4 flex-shrink-0"
+        className="flex items-center justify-between px-4 flex-shrink-0 h-14"
         style={{ borderBottom: "1px solid var(--pu-border)" }}
       >
         <div className="flex items-center gap-2">
@@ -345,7 +456,8 @@ export function Docs() {
   };
 
   return (
-    <div className="min-h-screen flex" style={{ backgroundColor: "var(--pu-bg)" }}>
+    <div className="min-h-screen flex pt-16" style={{ backgroundColor: "var(--pu-bg)" }}>
+      <DocsNavbar />
       <SEO
         title={`${activeArticle.title} — Docs | Plus Ultra`}
         description={activeArticle.content.replace(/[#*`>\[\]]/g, "").trim().slice(0, 160)}
@@ -389,7 +501,7 @@ export function Docs() {
       <main className="flex-1 min-w-0">
         {/* Top bar (mobile + desktop) */}
         <div
-          className="sticky top-16 z-30 flex items-center gap-3 px-4 sm:px-8 py-3"
+          className="sticky top-16 z-30 flex items-center gap-3 px-4 sm:px-8 h-14"
           style={{
             backgroundColor: "rgba(8,11,9,0.95)",
             backdropFilter: "blur(12px)",
