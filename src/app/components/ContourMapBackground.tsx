@@ -317,10 +317,25 @@ export function ContourMapBackground({
         COLS = Math.ceil(TILE_W / CELL) + 2;
         ROWS = Math.ceil(TILE_H / CELL) + 2;
         p.noiseDetail(cp.noiseOctaves, cp.noiseFalloff);
+        // Seamless tiling via 4-corner blend: bilinearly interpolate between
+        // noise at (nx,ny), (nx-W,ny), (nx,ny-H), (nx-W,ny-H) so that the
+        // values at every edge match those of the opposite edge exactly.
+        const tileNW = COLS * cp.noiseStep;
+        const tileNH = ROWS * cp.noiseStep;
         let hmap = new Float32Array(COLS * ROWS);
-        for (let r = 0; r < ROWS; r++)
-          for (let c = 0; c < COLS; c++)
-            hmap[r * COLS + c] = p.noise(c * cp.noiseStep, r * cp.noiseStep);
+        for (let r = 0; r < ROWS; r++) {
+          const ny = r * cp.noiseStep;
+          const fv = r / ROWS;
+          for (let c = 0; c < COLS; c++) {
+            const nx = c * cp.noiseStep;
+            const fu = c / COLS;
+            const v00 = p.noise(nx,          ny);
+            const v10 = p.noise(nx - tileNW, ny);
+            const v01 = p.noise(nx,          ny - tileNH);
+            const v11 = p.noise(nx - tileNW, ny - tileNH);
+            hmap[r * COLS + c] = v00*(1-fu)*(1-fv) + v10*fu*(1-fv) + v01*(1-fu)*fv + v11*fu*fv;
+          }
+        }
         // Smooth the scalar field — eliminates kinks and micro-artifacts
         hmap = blurHeightmap(hmap, COLS, ROWS, cp.blurPasses);
         chains = buildChains(hmap, COLS, ROWS, CELL, cp.numLevels, cp.minChainPts);
