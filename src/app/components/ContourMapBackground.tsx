@@ -294,6 +294,8 @@ export function ContourMapBackground({
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let p5inst: any;
+    let onMouseMove: ((e: MouseEvent) => void) | null = null;
+    let onMouseLeave: (() => void) | null = null;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sketch = (p: any) => {
@@ -301,6 +303,13 @@ export function ContourMapBackground({
       let COLS = 0, ROWS = 0, CELL = 0;
       let startMs = 0, cW = 0, cH = 0;
       let lastRebuildMs = -Infinity;
+      let offscreen: HTMLCanvasElement;
+      let octx: CanvasRenderingContext2D;
+      let targetX = -9999, targetY = -9999;
+      let spotX = -9999, spotY = -9999;
+      let spotOpacity = 0, targetOpacity = 0;
+      const SPOT_RADIUS = 350;
+      const LERP_POS = 0.08, LERP_FADE = 0.05;
 
       const buildTerrain = () => {
         const cp = paramsRef.current;
@@ -330,6 +339,19 @@ export function ContourMapBackground({
         p.noiseSeed(27182);
         buildTerrain();
         startMs = p.millis();
+        offscreen = document.createElement('canvas');
+        offscreen.width = cW;
+        offscreen.height = cH;
+        octx = offscreen.getContext('2d')!;
+        onMouseMove = (e: MouseEvent) => {
+          const rect = container.getBoundingClientRect();
+          targetX = e.clientX - rect.left;
+          targetY = e.clientY - rect.top;
+          targetOpacity = (targetX >= 0 && targetX <= rect.width && targetY >= 0 && targetY <= rect.height) ? 1 : 0;
+        };
+        onMouseLeave = () => { targetOpacity = 0; };
+        document.addEventListener('mousemove', onMouseMove);
+        container.addEventListener('mouseleave', onMouseLeave);
       };
 
       p.draw = () => {
@@ -353,46 +375,78 @@ export function ContourMapBackground({
         const panX = (elapsed * cp.speed) % TILE_W;
         const panY = (elapsed * cp.speed * cp.speedYRatio) % TILE_H;
 
+        // Per-frame lerp for spotlight position and opacity
+        spotX = spotX + (targetX - spotX) * LERP_POS;
+        spotY = spotY + (targetY - spotY) * LERP_POS;
+        spotOpacity = spotOpacity + (targetOpacity - spotOpacity) * LERP_FADE;
+
+        // Reusable chain draw loop — draws all viewport-culled chains onto any context
+        const drawChains = (context: CanvasRenderingContext2D) => {
+          const tilesX = Math.ceil((panX + cW) / TILE_W);
+          const tilesY = Math.ceil((panY + cH) / TILE_H);
+          for (let tx = 0; tx < tilesX; tx++) {
+            for (let ty = 0; ty < tilesY; ty++) {
+              const offX = tx * TILE_W - panX;
+              const offY = ty * TILE_H - panY;
+              const vx0 = -offX - CELL * 4, vx1 = cW - offX + CELL * 4;
+              const vy0 = -offY - CELL * 4, vy1 = cH - offY + CELL * 4;
+              context.save();
+              context.translate(offX, offY);
+              for (const ch of chains) {
+                if (ch.bx1 < vx0 || ch.bx0 > vx1 || ch.by1 < vy0 || ch.by0 > vy1) continue;
+                const pts = ch.pts;
+                const n = pts.length;
+                if (n < 2) continue;
+                context.beginPath();
+                const getP = (i: number): Pt => ch.closed ? pts[((i % n) + n) % n] : pts[Math.max(0, Math.min(n - 1, i))];
+                context.moveTo(pts[0].x, pts[0].y);
+                const count = ch.closed ? n : n - 1;
+                for (let i = 0; i < count; i++) {
+                  const p0 = getP(i - 1), p1 = getP(i), p2 = getP(i + 1), p3 = getP(i + 2);
+                  context.bezierCurveTo(
+                    p1.x + (p2.x - p0.x) / 6, p1.y + (p2.y - p0.y) / 6,
+                    p2.x - (p3.x - p1.x) / 6, p2.y - (p3.y - p1.y) / 6,
+                    p2.x, p2.y,
+                  );
+                }
+                if (ch.closed) context.closePath();
+                context.stroke();
+              }
+              context.restore();
+            }
+          }
+        };
+
         const ctx = p.drawingContext as CanvasRenderingContext2D;
         ctx.clearRect(0, 0, cW, cH);
-        ctx.strokeStyle = `rgba(57,255,20,${cp.lineAlpha})`;
         ctx.lineWidth = cp.lineWidth;
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
 
-        const tilesX = Math.ceil((panX + cW) / TILE_W);
-        const tilesY = Math.ceil((panY + cH) / TILE_H);
+        // Pass 1 — ambient layer (dimmed to make spotlight contrast pop)
+        ctx.strokeStyle = `rgba(57,255,20,${cp.lineAlpha * 0.65})`;
+        drawChains(ctx);
 
-        for (let tx = 0; tx < tilesX; tx++) {
-          for (let ty = 0; ty < tilesY; ty++) {
-            const offX = tx * TILE_W - panX;
-            const offY = ty * TILE_H - panY;
-            const vx0 = -offX - CELL * 4, vx1 = cW - offX + CELL * 4;
-            const vy0 = -offY - CELL * 4, vy1 = cH - offY + CELL * 4;
-            ctx.save();
-            ctx.translate(offX, offY);
-            for (const ch of chains) {
-              if (ch.bx1 < vx0 || ch.bx0 > vx1 || ch.by1 < vy0 || ch.by0 > vy1) continue;
-              const pts = ch.pts;
-              const n = pts.length;
-              if (n < 2) continue;
-              ctx.beginPath();
-              const getP = (i: number): Pt => ch.closed ? pts[((i % n) + n) % n] : pts[Math.max(0, Math.min(n - 1, i))];
-              ctx.moveTo(pts[0].x, pts[0].y);
-              const count = ch.closed ? n : n - 1;
-              for (let i = 0; i < count; i++) {
-                const p0 = getP(i - 1), p1 = getP(i), p2 = getP(i + 1), p3 = getP(i + 2);
-                ctx.bezierCurveTo(
-                  p1.x + (p2.x - p0.x) / 6, p1.y + (p2.y - p0.y) / 6,
-                  p2.x - (p3.x - p1.x) / 6, p2.y - (p3.y - p1.y) / 6,
-                  p2.x, p2.y,
-                );
-              }
-              if (ch.closed) ctx.closePath();
-              ctx.stroke();
-            }
-            ctx.restore();
-          }
+        // Pass 2 — spotlight overlay
+        if (spotOpacity > 0.01) {
+          octx.clearRect(0, 0, cW, cH);
+          octx.strokeStyle = `rgba(57,255,20,1.0)`;
+          octx.lineWidth = cp.lineWidth;
+          octx.lineCap = "round";
+          octx.lineJoin = "round";
+          octx.globalCompositeOperation = "source-over";
+          drawChains(octx);
+
+          // Mask bright lines to the spotlight circle via radial gradient
+          octx.globalCompositeOperation = "destination-in";
+          const grad = octx.createRadialGradient(spotX, spotY, 0, spotX, spotY, SPOT_RADIUS);
+          grad.addColorStop(0, `rgba(0,0,0,${spotOpacity})`);
+          grad.addColorStop(1, "rgba(0,0,0,0)");
+          octx.fillStyle = grad;
+          octx.fillRect(0, 0, cW, cH);
+          octx.globalCompositeOperation = "source-over";
+
+          ctx.drawImage(offscreen, 0, 0);
         }
       };
 
@@ -400,11 +454,17 @@ export function ContourMapBackground({
         cW = container.offsetWidth || window.innerWidth;
         cH = container.offsetHeight || window.innerHeight;
         p.resizeCanvas(cW, cH);
+        offscreen.width = cW;
+        offscreen.height = cH;
       };
     };
 
     p5inst = new p5(sketch, container);
-    return () => { p5inst.remove(); };
+    return () => {
+      p5inst.remove();
+      if (onMouseMove) document.removeEventListener('mousemove', onMouseMove);
+      if (onMouseLeave) container.removeEventListener('mouseleave', onMouseLeave);
+    };
   }, []);
 
   return (
