@@ -59,21 +59,37 @@ export function Footer({ isCard = false }: { isCard?: boolean }) {
       style={{
         borderColor: "var(--pu-border)",
         backgroundColor: isCard ? "transparent" : "var(--pu-surface)",
+        position: "relative",
       }}
     >
+      {/* Full-bleed line aligned with the logo's horizontal star rays.
+          pt-12 = 48px above logo, rays at (17.132/27.8875)×84 ≈ 52px into logo → 100px total */}
+      <div style={{
+        position: "absolute",
+        left: 0,
+        right: 0,
+        top: "100px",
+        height: "1px",
+        backgroundColor: "var(--pu-border)",
+        pointerEvents: "none",
+      }} />
+
       {/* Main footer content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12">
+
+        {/* Logo row */}
+        <Link to="/" className="flex items-center">
+          <div style={{ width: "258px", height: "84px", overflow: "hidden", position: "relative", flexShrink: 0 }}>
+            <div style={{ transform: "scale(3)", transformOrigin: "top left", width: "86px", height: "28px", position: "absolute", top: 0, left: 0 }}>
+              <Logo />
+            </div>
+          </div>
+        </Link>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-12 pb-12 pt-10">
 
           {/* Brand — col-span-2 */}
           <div className="lg:col-span-2">
-            <Link to="/" className="flex items-center gap-2 mb-4">
-              <div style={{ width: "258px", height: "84px", overflow: "hidden", position: "relative", flexShrink: 0 }}>
-                <div style={{ transform: "scale(3)", transformOrigin: "top left", width: "86px", height: "28px", position: "absolute", top: 0, left: 0 }}>
-                  <Logo />
-                </div>
-              </div>
-            </Link>
             <p
               className="text-sm leading-relaxed mb-4"
               style={{ color: "var(--pu-text-muted)", maxWidth: "280px" }}
@@ -104,7 +120,7 @@ export function Footer({ isCard = false }: { isCard?: boolean }) {
           </div>
 
           {/* Product links — col 3 */}
-          <div className="lg:pt-[100px]">
+          <div>
             <h4
               className="text-xs pu-mono tracking-widest uppercase mb-4"
               style={{ color: "var(--pu-green)", letterSpacing: "0.15em" }}
@@ -132,8 +148,8 @@ export function Footer({ isCard = false }: { isCard?: boolean }) {
             </ul>
           </div>
 
-          {/* Resources + Legal + GitHub/Socials row — col-span-2 */}
-          <div className="lg:col-span-2 flex flex-col lg:pt-[100px]">
+          {/* Resources + Legal — col-span-2 */}
+          <div className="lg:col-span-2 flex flex-col">
             {/* Resources & Legal side by side */}
             <div className="grid grid-cols-2 gap-8">
               {(["Resources", "Legal"] as const).map((category) => (

@@ -33,10 +33,10 @@ export interface ContourParams {
 const DEFAULTS: ContourParams = {
   speed: 30,
   speedYRatio: 0.85,
-  opacity: 0.63,
+  opacity: 0.40,
   lineAlpha: 0.28,
   lineWidth: 1.0,
-  cellSize: 15,
+  cellSize: 7,
   noiseStep: 0.055,
   numLevels: 23,
   noiseOctaves: 3,

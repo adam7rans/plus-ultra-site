@@ -12,7 +12,7 @@ function HeroSection() {
       style={{ backgroundColor: "var(--pu-bg)" }}
     >
       {/* Contour map background — extends 64px behind the navbar */}
-      <ContourMapBackground opacity={0.4} showControls />
+      <ContourMapBackground opacity={0.4} />
       {/* Radial glow */}
       <div
         className="absolute inset-0 pointer-events-none"
@@ -846,7 +846,7 @@ function CtaSection() {
           </span>
         </h2>
         <p className="mb-10" style={{ color: "var(--pu-text-muted)", fontSize: "1rem" }}>
-          Join 50,000+ prepared citizens, first responders, and security professionals who trust Plus Ultra when it matters most.
+          Built for citizens, first responders, and security professionals who know that when the grid goes down, preparation is the only advantage.
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <a
@@ -945,10 +945,39 @@ function CtaAndFooter() {
         className="relative"
         style={{ padding: "0 clamp(24px, 13vw, 220px)" }}
       >
+        {/* Full-width rule at star-ray level — connects internal footer divider across gutters */}
+        <div style={{ position: "absolute", left: 0, right: 0, top: "100px", height: "1px", backgroundColor: "var(--pu-border)", pointerEvents: "none" }} />
+
+        {/* Left gutter grid — line at RIGHT edge of each tile so it pins to card border */}
+        <div style={{
+          position: "absolute", left: 0, top: "100px", bottom: 0,
+          width: "clamp(24px, 13vw, 220px)",
+          backgroundImage: [
+            "linear-gradient(to right, transparent 0px, transparent 59px, var(--pu-border) 59px, var(--pu-border) 60px)",
+            "linear-gradient(to bottom, var(--pu-border) 0px, var(--pu-border) 1px, transparent 1px, transparent 60px)",
+          ].join(", "),
+          backgroundSize: "60px 60px",
+          backgroundPosition: "right top",
+          pointerEvents: "none",
+        }} />
+
+        {/* Right gutter grid — line at LEFT edge of each tile so it pins to card border */}
+        <div style={{
+          position: "absolute", right: 0, top: "100px", bottom: 0,
+          width: "clamp(24px, 13vw, 220px)",
+          backgroundImage: [
+            "linear-gradient(to right, var(--pu-border) 0px, var(--pu-border) 1px, transparent 1px, transparent 60px)",
+            "linear-gradient(to bottom, var(--pu-border) 0px, var(--pu-border) 1px, transparent 1px, transparent 60px)",
+          ].join(", "),
+          backgroundSize: "60px 60px",
+          backgroundPosition: "left top",
+          pointerEvents: "none",
+        }} />
+
         <div
           className="rounded-t-xl overflow-hidden"
           style={{
-            backgroundColor: "var(--pu-surface)",
+            background: "linear-gradient(to bottom, transparent 100px, var(--pu-surface) 100px)",
             border: "1px solid var(--pu-border)",
             borderBottom: "none",
           }}

@@ -364,7 +364,7 @@ function Sidebar({ activeCategory, activeArticle, onSelect, onClose }: SidebarPr
               <button
                 className="w-full flex items-center justify-between px-4 py-2.5 text-left transition-colors"
                 onClick={() => toggleCategory(cat.id)}
-                style={{ color: accentColor }}
+                style={{ color: "var(--pu-text)" }}
               >
                 <span className="text-xs pu-mono tracking-widest uppercase">
                   {cat.label}

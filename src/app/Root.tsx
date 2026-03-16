@@ -4,7 +4,7 @@ import { Navbar } from "./components/Navbar";
 import { Footer } from "./components/Footer";
 import { CartProvider } from "./context/CartContext";
 import { CartDrawer } from "./components/CartDrawer";
-import { AnalyticsProvider, AnalyticsDevMonitor } from "./components/Analytics";
+import { AnalyticsProvider } from "./components/Analytics";
 import { SITE_STRUCTURED_DATA } from "./components/SEO";
 
 export function Root() {
@@ -30,8 +30,6 @@ export function Root() {
         <CartDrawer />
       </div>
 
-      {/* Dev-only analytics event monitor (hidden in production) */}
-      <AnalyticsDevMonitor />
     </CartProvider>
   );
 }
