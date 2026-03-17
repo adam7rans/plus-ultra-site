@@ -303,6 +303,8 @@ export function ContourMapBackground({
       let COLS = 0, ROWS = 0, CELL = 0;
       let startMs = 0, cW = 0, cH = 0;
       let lastRebuildMs = -Infinity;
+      let lastPanRebuildMs = -Infinity;
+      let tileOffsetX = 0, tileOffsetY = 0;
       let offscreen: HTMLCanvasElement;
       let octx: CanvasRenderingContext2D;
       let targetX = -9999, targetY = -9999;
@@ -317,25 +319,14 @@ export function ContourMapBackground({
         COLS = Math.ceil(TILE_W / CELL) + 2;
         ROWS = Math.ceil(TILE_H / CELL) + 2;
         p.noiseDetail(cp.noiseOctaves, cp.noiseFalloff);
-        // Seamless tiling via 4-corner blend: bilinearly interpolate between
-        // noise at (nx,ny), (nx-W,ny), (nx,ny-H), (nx-W,ny-H) so that the
-        // values at every edge match those of the opposite edge exactly.
-        const tileNW = COLS * cp.noiseStep;
-        const tileNH = ROWS * cp.noiseStep;
+        // Sample noise at absolute world coordinates so the terrain is
+        // consistent across pan positions and never needs to tile.
+        const noiseOffX = (tileOffsetX / CELL) * cp.noiseStep;
+        const noiseOffY = (tileOffsetY / CELL) * cp.noiseStep;
         let hmap = new Float32Array(COLS * ROWS);
-        for (let r = 0; r < ROWS; r++) {
-          const ny = r * cp.noiseStep;
-          const fv = r / ROWS;
-          for (let c = 0; c < COLS; c++) {
-            const nx = c * cp.noiseStep;
-            const fu = c / COLS;
-            const v00 = p.noise(nx,          ny);
-            const v10 = p.noise(nx - tileNW, ny);
-            const v01 = p.noise(nx,          ny - tileNH);
-            const v11 = p.noise(nx - tileNW, ny - tileNH);
-            hmap[r * COLS + c] = v00*(1-fu)*(1-fv) + v10*fu*(1-fv) + v01*(1-fu)*fv + v11*fu*fv;
-          }
-        }
+        for (let r = 0; r < ROWS; r++)
+          for (let c = 0; c < COLS; c++)
+            hmap[r * COLS + c] = p.noise(noiseOffX + c * cp.noiseStep, noiseOffY + r * cp.noiseStep);
         // Smooth the scalar field — eliminates kinks and micro-artifacts
         hmap = blurHeightmap(hmap, COLS, ROWS, cp.blurPasses);
         chains = buildChains(hmap, COLS, ROWS, CELL, cp.numLevels, cp.minChainPts);
@@ -387,49 +378,58 @@ export function ContourMapBackground({
         }
 
         const elapsed = (now - startMs) / 1000;
-        const panX = (elapsed * cp.speed) % TILE_W;
-        const panY = (elapsed * cp.speed * cp.speedYRatio) % TILE_H;
+        // Absolute (non-wrapping) pan — terrain rebuilds automatically as we scroll
+        const panX = elapsed * cp.speed;
+        const panY = elapsed * cp.speed * cp.speedYRatio;
+
+        // Rebuild terrain when the viewport scrolls past 50% of the pre-computed
+        // tile. New tile is centred 25% behind current pan so we have ~TILE_W/2
+        // of lookahead before the next rebuild.
+        if (now - lastPanRebuildMs > 500) {
+          const sx = panX - tileOffsetX, sy = panY - tileOffsetY;
+          if (sx > TILE_W * 0.5 || sy > TILE_H * 0.5) {
+            tileOffsetX = panX - TILE_W * 0.25;
+            tileOffsetY = panY - TILE_H * 0.25;
+            lastPanRebuildMs = now;
+            buildTerrain();
+          }
+        }
+
+        const scrolledX = panX - tileOffsetX;
+        const scrolledY = panY - tileOffsetY;
 
         // Per-frame lerp for spotlight position and opacity
         spotX = spotX + (targetX - spotX) * LERP_POS;
         spotY = spotY + (targetY - spotY) * LERP_POS;
         spotOpacity = spotOpacity + (targetOpacity - spotOpacity) * LERP_FADE;
 
-        // Reusable chain draw loop — draws all viewport-culled chains onto any context
+        // Draw all viewport-culled chains with a single translation (no tiling)
         const drawChains = (context: CanvasRenderingContext2D) => {
-          const tilesX = Math.ceil((panX + cW) / TILE_W);
-          const tilesY = Math.ceil((panY + cH) / TILE_H);
-          for (let tx = 0; tx < tilesX; tx++) {
-            for (let ty = 0; ty < tilesY; ty++) {
-              const offX = tx * TILE_W - panX;
-              const offY = ty * TILE_H - panY;
-              const vx0 = -offX - CELL * 4, vx1 = cW - offX + CELL * 4;
-              const vy0 = -offY - CELL * 4, vy1 = cH - offY + CELL * 4;
-              context.save();
-              context.translate(offX, offY);
-              for (const ch of chains) {
-                if (ch.bx1 < vx0 || ch.bx0 > vx1 || ch.by1 < vy0 || ch.by0 > vy1) continue;
-                const pts = ch.pts;
-                const n = pts.length;
-                if (n < 2) continue;
-                context.beginPath();
-                const getP = (i: number): Pt => ch.closed ? pts[((i % n) + n) % n] : pts[Math.max(0, Math.min(n - 1, i))];
-                context.moveTo(pts[0].x, pts[0].y);
-                const count = ch.closed ? n : n - 1;
-                for (let i = 0; i < count; i++) {
-                  const p0 = getP(i - 1), p1 = getP(i), p2 = getP(i + 1), p3 = getP(i + 2);
-                  context.bezierCurveTo(
-                    p1.x + (p2.x - p0.x) / 6, p1.y + (p2.y - p0.y) / 6,
-                    p2.x - (p3.x - p1.x) / 6, p2.y - (p3.y - p1.y) / 6,
-                    p2.x, p2.y,
-                  );
-                }
-                if (ch.closed) context.closePath();
-                context.stroke();
-              }
-              context.restore();
+          const vx0 = scrolledX - CELL * 4, vx1 = scrolledX + cW + CELL * 4;
+          const vy0 = scrolledY - CELL * 4, vy1 = scrolledY + cH + CELL * 4;
+          context.save();
+          context.translate(-scrolledX, -scrolledY);
+          for (const ch of chains) {
+            if (ch.bx1 < vx0 || ch.bx0 > vx1 || ch.by1 < vy0 || ch.by0 > vy1) continue;
+            const pts = ch.pts;
+            const n = pts.length;
+            if (n < 2) continue;
+            context.beginPath();
+            const getP = (i: number): Pt => ch.closed ? pts[((i % n) + n) % n] : pts[Math.max(0, Math.min(n - 1, i))];
+            context.moveTo(pts[0].x, pts[0].y);
+            const count = ch.closed ? n : n - 1;
+            for (let i = 0; i < count; i++) {
+              const p0 = getP(i - 1), p1 = getP(i), p2 = getP(i + 1), p3 = getP(i + 2);
+              context.bezierCurveTo(
+                p1.x + (p2.x - p0.x) / 6, p1.y + (p2.y - p0.y) / 6,
+                p2.x - (p3.x - p1.x) / 6, p2.y - (p3.y - p1.y) / 6,
+                p2.x, p2.y,
+              );
             }
+            if (ch.closed) context.closePath();
+            context.stroke();
           }
+          context.restore();
         };
 
         const ctx = p.drawingContext as CanvasRenderingContext2D;
