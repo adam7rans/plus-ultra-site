@@ -72,7 +72,7 @@ function cellBounds({ x, y, width, height }: WorldBounds) {
 }
 
 /** World-coordinate seeds keep groups unchanged when terrain tiles rebuild. */
-export function generatePeopleGroups(bounds: WorldBounds): PeopleGroup[] {
+export function generatePeopleGroups(bounds: WorldBounds, colors: readonly string[] = COLORS): PeopleGroup[] {
   const [left, top, right, bottom] = cellBounds(bounds);
   const groups: PeopleGroup[] = [];
   for (let row = top; row <= bottom; row++) {
@@ -82,7 +82,7 @@ export function generatePeopleGroups(bounds: WorldBounds): PeopleGroup[] {
       const x = (column + 0.2 + random() * 0.6) * CELL_SIZE;
       const y = (row + 0.2 + random() * 0.6) * CELL_SIZE;
       const count = GROUP_SIZES[Math.floor(random() * GROUP_SIZES.length)];
-      const color = COLORS[Math.floor(random() * COLORS.length)];
+      const color = colors[Math.floor(random() * colors.length)];
       const rotation = random() * Math.PI * 2;
       const walkingGroup = random() < 0.45;
       const walk = walkingGroup ? createRoute(random, 45 + random() * 40, 14 + random() * 10) : undefined;
@@ -103,14 +103,14 @@ export function generatePeopleGroups(bounds: WorldBounds): PeopleGroup[] {
 }
 
 /** Cache only the cells around the visible viewport, rather than an infinite map. */
-export function createPeopleLayer() {
+export function createPeopleLayer(colors: readonly string[] = COLORS) {
   let cacheKey = "";
   let groups: PeopleGroup[] = [];
   return {
     draw(context: CanvasRenderingContext2D, bounds: WorldBounds, spot: Spotlight, seconds = 0) {
       const key = cellBounds(bounds).join(":");
       if (key !== cacheKey) {
-        groups = generatePeopleGroups(bounds);
+        groups = generatePeopleGroups(bounds, colors);
         cacheKey = key;
       }
       context.save();

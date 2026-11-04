@@ -2,20 +2,23 @@ import type { ContourParams, Chain, Pt } from "./settings";
 import { TILE_W, TILE_H } from "./settings";
 import { blurHeightmap, buildChains } from "./terrain";
 import { createPeopleLayer } from "./people";
+import { CONTOUR_PALETTES, type ContourTheme } from "./palette";
 
 interface SketchOptions {
   container: HTMLDivElement;
   paramsRef: { current: ContourParams };
   onRebuildChange: (rebuilding: boolean) => void;
   showPeople: boolean;
+  theme: ContourTheme;
 }
 
-export function createContourSketch({ container, paramsRef, onRebuildChange, showPeople }: SketchOptions) {
+export function createContourSketch({ container, paramsRef, onRebuildChange, showPeople, theme }: SketchOptions) {
   let onPointerMove: ((e: PointerEvent) => void) | null = null;
   let onPointerLeave: (() => void) | null = null;
   let rebuildTimer: ReturnType<typeof setTimeout> | undefined;
   const lastTerrainRef = { current: { ...paramsRef.current } };
-  const peopleLayer = createPeopleLayer();
+  const palette = CONTOUR_PALETTES[theme];
+  const peopleLayer = createPeopleLayer(palette.people);
   const sketch = (p: any) => {
     let chains: Chain[] = [];
     let COLS = 0, ROWS = 0, CELL = 0;
@@ -157,13 +160,13 @@ export function createContourSketch({ container, paramsRef, onRebuildChange, sho
       ctx.lineJoin = "round";
 
       // Pass 1 — ambient layer (dimmed to make spotlight contrast pop)
-      ctx.strokeStyle = `rgba(57,255,20,${cp.lineAlpha * 0.65})`;
+      ctx.strokeStyle = `rgba(${palette.contour},${cp.lineAlpha * 0.65})`;
       drawChains(ctx);
 
       // Pass 2 — spotlight overlay
       if (spotOpacity > 0.01) {
         octx.clearRect(0, 0, cW, cH);
-        octx.strokeStyle = `rgba(57,255,20,1.0)`;
+        octx.strokeStyle = palette.spotlight;
         octx.lineWidth = cp.lineWidth;
         octx.lineCap = "round";
         octx.lineJoin = "round";

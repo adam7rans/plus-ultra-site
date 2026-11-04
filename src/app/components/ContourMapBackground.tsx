@@ -3,6 +3,7 @@ import p5 from "p5";
 import { DEFAULTS, type ContourParams } from "./contour/settings";
 import { ContourControls } from "./contour/ContourControls";
 import { createContourSketch } from "./contour/createContourSketch";
+import type { ContourTheme } from "./contour/palette";
 
 export type { ContourParams } from "./contour/settings";
 
@@ -12,6 +13,7 @@ interface ContourMapBackgroundProps {
   opacity?: number;
   showControls?: boolean;
   showPeople?: boolean;
+  theme?: ContourTheme;
 }
 
 export function ContourMapBackground({
@@ -20,6 +22,7 @@ export function ContourMapBackground({
   opacity = 1,
   showControls = false,
   showPeople = false,
+  theme = "dark",
 }: ContourMapBackgroundProps) {
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const [params, setParams] = useState<ContourParams>({ ...DEFAULTS, opacity });
@@ -31,14 +34,14 @@ export function ContourMapBackground({
     const container = canvasContainerRef.current;
     if (!container) return;
     const { sketch, dispose } = createContourSketch({
-      container, paramsRef, onRebuildChange: setIsRebuilding, showPeople,
+      container, paramsRef, onRebuildChange: setIsRebuilding, showPeople, theme,
     });
     const instance = new p5(sketch, container);
     return () => {
       dispose();
       instance.remove();
     };
-  }, [showPeople]);
+  }, [showPeople, theme]);
 
   return (
     <div className={className} style={{ position: "absolute", inset: 0, pointerEvents: "none", ...style }}>
