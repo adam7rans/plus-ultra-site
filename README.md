@@ -7,5 +7,4 @@
 
   Run `npm i` to install the dependencies.
 
-  Run `npm run dev` to start the development server.
-  
+  Run `npm run dev` to start the development server at http://127.0.0.1:5194.

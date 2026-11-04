@@ -1,5 +1,5 @@
 # Plus Ultra robots.txt
-# https://plusultra.app
+# https://plus-ultra-site.vercel.app
 
 User-agent: *
 Allow: /
@@ -28,4 +28,4 @@ User-agent: Discordbot
 Allow: /
 
 # Sitemap location
-Sitemap: https://plusultra.app/sitemap.xml
+Sitemap: https://plus-ultra-site.vercel.app/sitemap.xml
